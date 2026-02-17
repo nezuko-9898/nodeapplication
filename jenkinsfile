@@ -1,0 +1,44 @@
+pipeline {
+
+    agent any
+
+    environment {
+        SERVER = "ubuntu@65.1.148.13"
+        APP_PATH = "/var/www/nodeapp"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Use Node') {
+            steps {
+                sh '''
+                export NVM_DIR="$HOME/.nvm"
+                source $NVM_DIR/nvm.sh
+                nvm install
+                nvm use
+                '''
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm install'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh '''
+                rsync -avz --delete ./ $SERVER:$APP_PATH
+                ssh $SERVER "cd $APP_PATH && npm install && pm2 restart app || pm2 start app.js --name app"
+                '''
+            }
+        }
+    }
+}
